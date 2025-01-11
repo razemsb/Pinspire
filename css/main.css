@@ -1,0 +1,54 @@
+.contents-image {
+    background-color: #ffffff;
+    border-radius: 10px;
+    border: 1px solid #0000003f;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    width: 100%;
+    height: 100%;
+}
+.card {
+    border-radius: 13px!important;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+.card:hover {
+    transform: translateY(-1px);
+    transition: transform 0.3s ease-in-out;
+}
+.list-group-item {
+    width: 100%;
+    height: 100%;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+.list-group-item:hover {
+    transform: translateX(2px);
+    transition: transform 0.3s ease-in-out;
+}
+.list-group-item.admin {
+    border: 1px solid rgb(252, 84, 0);
+    color: red;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+body {
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+.container-from-image {
+    margin-left: auto;
+    margin-right: auto;
+    width: 95%;
+}
