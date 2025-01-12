@@ -16,7 +16,7 @@ $user = $stmt->get_result()->fetch_assoc();
 $_SESSION['user'] = $user;
 $stmt->close();
 
-$stmt2 = $conn->prepare("SELECT * FROM images");
+$stmt2 = $conn->prepare("SELECT * FROM images WHERE Active = 'active'");
 $stmt2->execute();
 $result2 = $stmt2->get_result(); 
 $images = [];
@@ -46,13 +46,14 @@ $stmt2->close();
                 <span class="navbar-toggler-icon"></span>
             </button>
         </div>
+        <a href="profile/profile.php"><img src="icons/upload.svg" style="width: 30px; height: 30px; object-fit: cover;"></a>
         <div class="collapse navbar-collapse me-3" id="navbarcenter">
         <input type="text" name="search" id="search" class="form-control" placeholder="Поиск" style="width: 300px; margin-left: 20px;">
         </div>
         <div class="collapse navbar-collapse float-end" id="navbarNav">
             <ul class="navbar-nav me-5">
-                <li class="nav-item ms-2 me-1">
-                    <p class="mt-2 fw-bold"><?= htmlspecialchars($_SESSION['user']['Login'], ENT_QUOTES) ?></p>
+                <li class="nav-item ms-2 me-1 mt-2">
+                    <a href="profile/profile.php" class="mt-2 fw-bold" style="text-decoration: none; color: black;"><?= htmlspecialchars($_SESSION['user']['Login'], ENT_QUOTES) ?></a>
                 </li>
                 <li class="nav-item mt-1 ms-3">
                     <img src="<?= htmlspecialchars($_SESSION['user']['Avatar'], ENT_QUOTES) ?>" alt="" style="width: 50px; height: 50px; border-radius: 50%;">
@@ -82,7 +83,7 @@ $stmt2->close();
     <ul class="list-group">
             <?php if($_SESSION['admin_auth'] === true): ?>
             <li class="list-group-item admin">
-                <a class="nav-link mb-1" href="">Админ панель</a>
+                <a class="nav-link mb-1" href="admin/index.php">Админ панель</a>
             </li>
             <?php endif; ?>
             <li class="list-group-item">
@@ -95,26 +96,33 @@ $stmt2->close();
 <main class="pt-5">
     <div class="row contents-image mt-3 container-from-image">
     <?php foreach ($images as $image) { ?>
-        <div class="col-md-3">
-            <div class="card mt-3 mb-3 d-flex">
-                <img src="<?= htmlspecialchars($image['Path'], ENT_QUOTES) ?>" class="card-img-top" alt="..." style="height: 350px;">
-                <div class="card-body">
-                    <h6 class="card-title"><?= htmlspecialchars(strlen($image['Image_Name']) > 15 ? substr($image['Image_Name'], 0, 20) . '...' : $image['Image_Name'], ENT_QUOTES) ?></h6>
-                    <p class="text-muted"><?= htmlspecialchars(strlen($image['Description']) > 25 ? substr($image['Description'], 0, 20) . '...' : $image['Description'], ENT_QUOTES) ?></p>
-                    <p>Автор: <?php
-                    $stmt = $conn->prepare("SELECT * FROM users WHERE ID = ?");
-                    $stmt->bind_param("i", $image['upload_user_id']);
-                    $stmt->execute();
-                    $upload_user = $stmt->get_result()->fetch_assoc();
-                    echo htmlspecialchars($upload_user['Login'], ENT_QUOTES);
-                    ?></p>
-                     <div class="d-flex justify-content-between align-items-center">
-                     <a href="#" type="button" class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#exampleModal<?= $image['ID'] ?>">Подробнее</a>
-                        <p class="mb-0 text-end text-muted" style="margin-left: auto; font-size: 15px"><?= htmlspecialchars($image['Category'], ENT_QUOTES) ?></p>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div class="col-md-3 col-sm-6 col-12">
+            <div class="card mt-3 mb-3 shadow-sm" style="border-radius: 10px; overflow: hidden;">
+                <img src="<?= htmlspecialchars($image['Preview_Path'], ENT_QUOTES) ?>" class="card-img-top" alt="Изображение" style="width: 100%;">
+                  <div class="card-body d-flex flex-column">
+                      <h6 class="card-title text-truncate" style="font-weight: bold;">
+                          <?= htmlspecialchars(strlen($image['Image_Name']) > 20 ? substr($image['Image_Name'], 0, 20) . '...' : $image['Image_Name'], ENT_QUOTES) ?>
+                      </h6>
+                      <p class="text-muted text-truncate mb-2">
+                          <?= htmlspecialchars(strlen($image['Description']) > 50 ? substr($image['Description'], 0, 50) . '...' : $image['Description'], ENT_QUOTES) ?>
+                      </p>
+                      <p class="mb-2" style="font-size: 14px; color: #555;">
+                          <strong>Автор:</strong> 
+                          <?php
+                          $stmt = $conn->prepare("SELECT * FROM users WHERE ID = ?");
+                          $stmt->bind_param("i", $image['upload_user_id']);
+                          $stmt->execute();
+                          $upload_user = $stmt->get_result()->fetch_assoc();
+                          echo htmlspecialchars($upload_user['Login'], ENT_QUOTES);
+                          ?>
+                      </p>
+                      <div class="d-flex justify-content-between align-items-center mt-auto">
+                          <a href="#" type="button" class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal<?= $image['ID'] ?>">Подробнее</a>
+                          <span class="badge bg-secondary" style="font-size: 12px;"><?= htmlspecialchars($image['Category'], ENT_QUOTES) ?></span>
+                      </div>
+                  </div>
+              </div>
+          </div>
     <?php } ?>
     <?php if (empty($images)) { ?>
         <div class="col-md-12 text-center">
@@ -122,10 +130,7 @@ $stmt2->close();
         </div>
     <?php } ?>
     </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
-</body>
-</html>
-<?php foreach ($images as $image) : ?>
+    <?php foreach ($images as $image) : ?>
 <div class="modal fade" id="exampleModal<?= $image['ID'] ?>" tabindex="-1" aria-labelledby="exampleModalLabel<?= $image['ID'] ?>" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
@@ -152,3 +157,6 @@ $stmt2->close();
     </div>
 </div>
 <?php endforeach; ?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: localhost
--- Время создания: Янв 11 2025 г., 22:07
+-- Время создания: Янв 12 2025 г., 15:49
 -- Версия сервера: 5.7.24
 -- Версия PHP: 7.4.1
 
@@ -24,6 +24,26 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Структура таблицы `admin`
+--
+
+CREATE TABLE `admin` (
+  `ID` int(11) NOT NULL,
+  `Admin_login` varchar(30) NOT NULL,
+  `Admin_ID` int(11) NOT NULL,
+  `Admin_password` varchar(70) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Дамп данных таблицы `admin`
+--
+
+INSERT INTO `admin` (`ID`, `Admin_login`, `Admin_ID`, `Admin_password`) VALUES
+(1, 'razemsb', 1, '$2y$10$IPXv.ScQDDVwIiJrjOnU7e/3FQ/4Dhmal.fS5mOw/c7GI32xIyGqu');
+
+-- --------------------------------------------------------
+
+--
 -- Структура таблицы `images`
 --
 
@@ -31,24 +51,30 @@ CREATE TABLE `images` (
   `ID` int(11) NOT NULL,
   `Image_Name` varchar(50) NOT NULL,
   `Path` varchar(100) NOT NULL,
-  `Category` enum('Аниме','Игры','Природа','Музыка','Мемы','Машины','Другое') NOT NULL,
+  `Preview_Path` varchar(255) DEFAULT NULL,
+  `Category` enum('Аниме','Игры','Природа','Музыка','Мемы','Машины','Другое','Животные') NOT NULL,
   `upload_user_id` int(50) NOT NULL,
   `Date_upload` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `Description` text NOT NULL
+  `Description` text NOT NULL,
+  `Tags` varchar(60) DEFAULT NULL,
+  `Active` enum('Active','Banned') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
 -- Дамп данных таблицы `images`
 --
 
-INSERT INTO `images` (`ID`, `Image_Name`, `Path`, `Category`, `upload_user_id`, `Date_upload`, `Description`) VALUES
-(1, 'Mems', 'uploads/1234567890.jpeg', 'Мемы', 1, '2025-01-11 18:38:12', 'Memes'),
-(2, 'Mita Miside', 'uploads/mita.jpeg', 'Игры', 1, '2025-01-11 18:47:35', 'mita yopta script'),
-(3, 'Asuka Lengley', 'uploads/asuka.jpeg', 'Аниме', 1, '2025-01-11 18:47:11', 'asuka lengley from Evangelion'),
-(4, 'SEREGA PIRAT', 'uploads/sergey.jpeg', 'Другое', 1, '2025-01-11 18:47:11', 'мое тп отменено'),
-(5, 'Ulquiorra', 'uploads/ulqiorra.jpeg', 'Аниме', 1, '2025-01-11 19:34:56', 'Ulquiorra from anime Bleach yopta'),
-(6, 'Granger Marksman', 'uploads/greno4ka.png', 'Игры', 1, '2025-01-11 20:49:34', 'granger top 2 marksman it the game!'),
-(7, 'TOXA', 'uploads/t2x2.jpg', 'Другое', 2, '2025-01-11 21:58:28', 'the best streamer in Russia and the CIS countries');
+INSERT INTO `images` (`ID`, `Image_Name`, `Path`, `Preview_Path`, `Category`, `upload_user_id`, `Date_upload`, `Description`, `Tags`, `Active`) VALUES
+(17, 'крутой кот', 'uploads/6783c2cde0329.jpeg', 'preview/6783c2cde0329.jpeg', 'Другое', 1, '2025-01-12 13:47:27', 'реально крутой', 'Animals', 'Active'),
+(18, 'punk not dead', 'uploads/6783c4c177870.jpeg', 'preview/6783c4c177870.jpeg', 'Мемы', 1, '2025-01-12 13:33:53', 'ведь панк никогда не умрет', 'Mems, Punk', 'Active'),
+(19, 'Granger', 'uploads/6783c644bc83e.png', 'preview/6783c644bc83e.png', 'Игры', 1, '2025-01-12 13:40:20', 'top 1 gold line', 'Game, Mobile Legends', 'Active'),
+(20, 'реально', 'uploads/6783c6fab5c9a.jpg', 'preview/6783c6fab5c9a.jpg', 'Игры', 1, '2025-01-12 13:43:22', 'почему...\r\n', 'Mems, Games', 'Active'),
+(21, 'Soryu Asuka Langley', 'uploads/6783c766c6bc9.jpeg', 'preview/6783c766c6bc9.jpeg', 'Аниме', 1, '2025-01-12 13:45:10', 'evangelion na - na', 'Anime', 'Active'),
+(22, 'женщина', 'uploads/6783c870c5710.jpeg', 'preview/6783c870c5710.jpeg', 'Игры', 1, '2025-01-12 13:49:36', 'ААААААА ЖЕНЩИНА', 'Miside, Mita', 'Active'),
+(23, 'father of twitch', 'uploads/6783cc531ceae.jpg', 'preview/6783cc531ceae.jpg', 'Другое', 1, '2025-01-12 14:06:11', 'файл слишком большой...', 'People, Streamer, T2X2', 'Active'),
+(24, 'ulqiorra', 'uploads/6783cc7f2f4de.jpeg', 'preview/6783cc7f2f4de.jpeg', 'Аниме', 1, '2025-01-12 14:06:55', 'espada', 'Bleach, Anime, Ulqiorra', 'Active'),
+(25, 'punks nya pop shit', 'uploads/6783e2792ea2b.jpeg', 'preview/6783e2792ea2b.jpeg', 'Мемы', 1, '2025-01-12 15:40:41', 'факты', 'Mems, Punk', 'Active'),
+(26, '2b', 'uploads/6783e3755791f.jpeg', 'preview/6783e3755791f.jpeg', 'Игры', 1, '2025-01-12 15:44:53', '2B ', '2B, NieR Automata', 'Active');
 
 -- --------------------------------------------------------
 
@@ -63,20 +89,28 @@ CREATE TABLE `users` (
   `Email` varchar(50) NOT NULL,
   `Date_reg` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `Avatar` varchar(80) NOT NULL,
-  `is_admin` enum('user','admin','system_admin') NOT NULL
+  `is_admin` enum('user','admin','system_admin') NOT NULL,
+  `is_active` enum('active','not_active') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
 -- Дамп данных таблицы `users`
 --
 
-INSERT INTO `users` (`ID`, `Login`, `Password`, `Email`, `Date_reg`, `Avatar`, `is_admin`) VALUES
-(1, 'razemsb', '$2y$10$IPXv.ScQDDVwIiJrjOnU7e/3FQ/4Dhmal.fS5mOw/c7GI32xIyGqu', 'maxim1xxx363@gmail.com', '2025-01-11 19:18:16', 'uploads/mita.jpeg', 'admin'),
-(2, 'evrei_cringe', '$2y$10$LsM89u5Q6l85obIKxgzJS./hpMAyWtm5A5eXOXDIad9Qm5WuQ89Zu', 'nkovaleva071@gmail.com', '2025-01-11 20:58:04', 'uploads/basic_avatar.svg', 'user');
+INSERT INTO `users` (`ID`, `Login`, `Password`, `Email`, `Date_reg`, `Avatar`, `is_admin`, `is_active`) VALUES
+(1, 'razemsb', '$2y$10$IPXv.ScQDDVwIiJrjOnU7e/3FQ/4Dhmal.fS5mOw/c7GI32xIyGqu', 'maxim1xxx363@gmail.com', '2025-01-12 15:24:11', 'uploads/avatar_6783de9b27f969.25024989.jpeg', 'admin', 'active'),
+(2, 'evrei_cringe', '$2y$10$LsM89u5Q6l85obIKxgzJS./hpMAyWtm5A5eXOXDIad9Qm5WuQ89Zu', 'nkovaleva071@gmail.com', '2025-01-12 08:45:12', 'uploads/basic_avatar.svg', 'user', 'active');
 
 --
 -- Индексы сохранённых таблиц
 --
+
+--
+-- Индексы таблицы `admin`
+--
+ALTER TABLE `admin`
+  ADD PRIMARY KEY (`ID`),
+  ADD KEY `Admin_ID` (`Admin_ID`);
 
 --
 -- Индексы таблицы `images`
@@ -95,16 +129,32 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT для таблицы `admin`
+--
+ALTER TABLE `admin`
+  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT для таблицы `images`
 --
 ALTER TABLE `images`
-  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT для таблицы `users`
 --
 ALTER TABLE `users`
   MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- Ограничения внешнего ключа сохраненных таблиц
+--
+
+--
+-- Ограничения внешнего ключа таблицы `admin`
+--
+ALTER TABLE `admin`
+  ADD CONSTRAINT `admin_ibfk_1` FOREIGN KEY (`Admin_ID`) REFERENCES `users` (`ID`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -1,5 +1,5 @@
 document.querySelector('#showAll').addEventListener('click', function() {
-    document.querySelectorAll('#images > .col > .card').forEach(el => el.style.display = 'block');
+    document.querySelectorAll('#images > .col-md-3 > .card').forEach(el => el.style.display = 'block');
     this.style.display = 'none';
     document.querySelector('#hideAll').style.display = 'block';
 }, false);

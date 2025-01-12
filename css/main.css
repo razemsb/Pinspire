@@ -7,12 +7,45 @@
     height: 100%;
 }
 .card {
-    border-radius: 13px!important;
+    width: 100%;
+    border-radius: 10px; 
+    overflow: hidden; 
+}
+.card-img-top {
+    height: 400px;
+    transition: transform 0.3s ease; 
+}
+input[name="search"] {
+    border-radius: 77px;
+}
+input[name="search"]:hover,
+input[name="search"]:focus, 
+input[name="search"]:active {
+    border: 1px solid #212529;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
 }
-.card:hover {
-    transform: translateY(-1px);
-    transition: transform 0.3s ease-in-out;
+.card-img-top:hover {
+    transform: scale(1.01);
+}
+.card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.text-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.btn-outline-dark {
+    font-size: 14px;
+    padding: 5px 10px;
+}
+
+.badge {
+    padding: 5px 10px;
+    border-radius: 5px;
 }
 .list-group-item {
     width: 100%;
@@ -52,3 +85,47 @@ body {
     margin-right: auto;
     width: 95%;
 }
+.navbar-nav img:hover {
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    transform: translateY(-1px);
+    border-radius: 50%;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+}
+.avatar-container {
+    position: relative;
+    display: inline-block;
+    width: 200px;
+    height: 200px;
+  }
+  .avatar-container img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+    border: 2px solid #212529;
+  }
+  .avatar-container:hover .avatar-menu {
+    display: block;
+  }
+  .avatar-menu {
+    display: none;
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #212529;
+    color: #f8f9fa;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+  }
+  .modal-content {
+    background-color: #fff; 
+    color: #212529; 
+  }
+  .btn-dark {
+    background-color: #212529;
+    border-color: #212529;
+  }

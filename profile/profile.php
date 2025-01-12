@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 session_start();
 require_once("../database/database.php");
 $stmt = $conn->prepare("SELECT * FROM images WHERE upload_user_id = ?");
@@ -11,7 +14,151 @@ if ($result && $result->num_rows > 0) {
         $images[] = $row;
     }
 }
-$stmt->close();
+function resizeImage($sourcePath, $destinationPath, $newWidth, $newHeight) {
+    list($width, $height, $type) = getimagesize($sourcePath);
+
+    switch ($type) {
+        case IMAGETYPE_JPEG:
+            $sourceImage = imagecreatefromjpeg($sourcePath);
+            break;
+        case IMAGETYPE_PNG:
+            $sourceImage = imagecreatefrompng($sourcePath);
+            break;
+        case IMAGETYPE_GIF:
+            $sourceImage = imagecreatefromgif($sourcePath);
+            break;
+        default:
+            return false;
+    }
+
+    $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+
+    if ($type == IMAGETYPE_PNG || $type == IMAGETYPE_GIF) {
+        imagecolortransparent($resizedImage, imagecolorallocate($resizedImage, 0, 0, 0));
+        imagealphablending($resizedImage, false);
+        imagesavealpha($resizedImage, true);
+    }
+
+    imagecopyresampled(
+        $resizedImage, 
+        $sourceImage, 
+        0, 0, 0, 0, 
+        $newWidth, $newHeight, 
+        $width, $height
+    );
+
+    switch ($type) {
+        case IMAGETYPE_JPEG:
+            imagejpeg($resizedImage, $destinationPath, 85);
+            break;
+        case IMAGETYPE_PNG:
+            imagepng($resizedImage, $destinationPath);
+            break;
+        case IMAGETYPE_GIF:
+            imagegif($resizedImage, $destinationPath);
+            break;
+    }
+
+    imagedestroy($sourceImage);
+    imagedestroy($resizedImage);
+
+    return true;
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (isset($_POST['image_name'], $_POST['category'], $_POST['description'], $_FILES['image_file'], $_POST['tags'])) {
+        $imageName = htmlspecialchars($_POST['image_name']);
+        $category = $_POST['category'];
+        $description = htmlspecialchars($_POST['description']);
+        $tags = htmlspecialchars($_POST['tags']);
+        $active = "active";
+        $uploadUserId = $_SESSION['user']['ID'] ?? 0;
+
+        $relativeDir = "uploads/";
+        $previewDir = "preview/";
+        $absoluteDir = __DIR__ . "/../uploads/";
+        $absolutePreviewDir = __DIR__ . "/../preview/";
+
+        $fileTmpPath = $_FILES['image_file']['tmp_name'];
+        $originalFileName = $_FILES['image_file']['name'];
+        $fileExtension = pathinfo($originalFileName, PATHINFO_EXTENSION);
+        $newFileName = uniqid() . '.' . $fileExtension;
+
+        $absoluteFilePath = $absoluteDir . $newFileName;
+        $relativeFilePath = $relativeDir . $newFileName;
+
+        $absolutePreviewPath = $absolutePreviewDir . $newFileName;
+        $relativePreviewPath = $previewDir . $newFileName;
+
+        if (!is_dir($absoluteDir)) {
+            mkdir($absoluteDir, 0777, true);
+        }
+        if (!is_dir($absolutePreviewDir)) {
+            mkdir($absolutePreviewDir, 0777, true);
+        }
+
+        if (move_uploaded_file($fileTmpPath, $absoluteFilePath)) {
+
+            if (!resizeImage($absoluteFilePath, $absolutePreviewPath, 300, 200)) {
+                echo "<script>alert('Ошибка при создании превью!');</script>";
+                exit();
+            }
+
+            $checkStmt = $conn->prepare("SELECT ID FROM images WHERE Image_Name = ?");
+            $checkStmt->bind_param("s", $imageName);
+            $checkStmt->execute();
+            $checkStmt->store_result();
+
+            if ($checkStmt->num_rows > 0) {
+                $updateStmt = $conn->prepare("UPDATE images SET Path = ?, Preview_Path = ?, Category = ?, upload_user_id = ?, Description = ? WHERE Image_Name = ?");
+                $updateStmt->bind_param("sssiss", $relativeFilePath, $relativePreviewPath, $category, $uploadUserId, $description, $imageName);
+                $updateStmt->execute();
+                $updateStmt->close();
+            } else {
+                $insertStmt = $conn->prepare("INSERT INTO images (Image_Name, Path, Preview_Path, Category, upload_user_id, Description, Tags, Active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $insertStmt->bind_param("ssssssss", $imageName, $relativeFilePath, $relativePreviewPath, $category, $uploadUserId, $description, $tags, $active);
+                $insertStmt->execute();
+                $insertStmt->close();
+            }
+
+            $checkStmt->close();
+            $conn->close();
+            echo "<script>alert('Успешная загрузка!');</script>";
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit();
+        } else {
+            echo "<script>alert('Ошибка при загрузке файла!');</script>";
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit();
+        }
+    } else {
+        echo "<script>alert('Некорректные данные формы!');</script>";
+    }
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['avatar'])) {
+    $fileTmpPath = $_FILES['avatar']['tmp_name'];
+    $fileName = $_FILES['avatar']['name'];
+    $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+
+    if (in_array($fileExtension, $allowedExtensions)) {
+        $newFileName = uniqid('avatar_', true) . '.' . $fileExtension;
+        $uploadDir = dirname(__DIR__) . '/uploads/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        $destPath = $uploadDir . $newFileName;
+        if (move_uploaded_file($fileTmpPath, $destPath)) {
+            $userId = $_SESSION['user']['ID'];
+            $avatarUrl = 'uploads/' . $newFileName;
+            $stmt = mysqli_prepare($conn, "UPDATE users SET Avatar = ? WHERE ID = ?");
+            mysqli_stmt_bind_param($stmt, 'si', $avatarUrl, $userId);
+            mysqli_stmt_execute($stmt);
+            $_SESSION['user']['Avatar'] = $avatarUrl;
+            mysqli_stmt_close($stmt);
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -32,13 +179,17 @@ $stmt->close();
                 <span class="navbar-toggler-icon"></span>
             </button>
         </div>
+        <a class="navbar-nav mt-1" style="font-weight: bold; font-size: 30px;" data-bs-toggle="modal" data-bs-target="#uploadModal"><img src="../icons/upload.svg" style="width: 30px; height: 30px; object-fit: cover;"></a>
+        <div class="collapse navbar-collapse me-3" id="navbarcenter">
+        <input type="text" name="search" id="search" class="form-control" placeholder="Поиск" style="width: 300px; margin-left: 20px;">
+        </div>
         <div class="collapse navbar-collapse float-end" id="navbarNav">
             <ul class="navbar-nav me-5">
                 <li class="nav-item ms-2 me-1">
-                    <p class="mt-2 fw-bold"><?= htmlspecialchars($_SESSION['user']['Login'], ENT_QUOTES) ?></p>
+                    <p class="mt-2 fw-bold" href="profile/profile.php"><?= htmlspecialchars($_SESSION['user']['Login'], ENT_QUOTES) ?></p>
                 </li>
                 <li class="nav-item mt-1 ms-3">
-                    <img src="../<?= htmlspecialchars($_SESSION['user']['Avatar'], ENT_QUOTES) ?>" alt="" style="width: 50px; height: 50px; border-radius: 50%;">
+                    <a href="profile/profile.php"><img src="../<?= htmlspecialchars($_SESSION['user']['Avatar'], ENT_QUOTES) ?>" alt="" style="width: 50px; height: 50px; border-radius: 50%;"></a>
                 </li>
                 <li class="nav-item">
                 <button class="btn btn-dark ms-3 me-0 mt-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasExample" aria-controls="offcanvasExample"><img src="../icons/menu.svg" style="width: 30px; height: 30px; object-fit: cover; filter: invert(1);"></button>
@@ -51,7 +202,7 @@ $stmt->close();
 <div class="offcanvas-header d-flex align-items-center justify-content-between">
     <div class="d-flex align-items-center">
         <img src="../<?= htmlspecialchars($_SESSION['user']['Avatar'], ENT_QUOTES) ?>" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%; margin-right: 10px;">
-        <p class="mt-2 fw-bold ms-auto"><?= htmlspecialchars($_SESSION['user']['Login'], ENT_QUOTES) ?>
+        <p class="mt-3 fw-bold ms-auto"><?= htmlspecialchars($_SESSION['user']['Login'], ENT_QUOTES) ?>
         <?php if($_SESSION['admin_auth'] === true): ?>
             <span class="badge bg-danger">Admin</span>
         <?php endif; ?>
@@ -65,14 +216,14 @@ $stmt->close();
             <li class="list-group-item">
                 <a class="nav-link mb-1" href="../index.php">На главную</a>
             </li>
+            <li class="list-group-item">
+                <a class="nav-link" href="" data-bs-toggle="modal" data-bs-target="#uploadModal">Загрузить картинку</button>
+            </li>
             <?php if($_SESSION['admin_auth'] === true): ?>
             <li class="list-group-item admin">
                 <a class="nav-link mb-1" href="">Админ панель</a>
             </li>
             <?php endif; ?>
-            <li class="list-group-item">
-                <a class="nav-link mb-1" href="">Загрузить изображение</a>
-            </li>
         </ul>
     </div>
     <a class="danger btn btn-danger" href="../auth/logout.php" style="border-radius: 0px;">Выход</a>
@@ -82,9 +233,12 @@ $stmt->close();
     <div class="row">
         <div class="col-12 border shadow p-4">
             <h1>Профиль</h1>
-            <div class="d-flex justify-content-center">
-            <img src="../<?= htmlspecialchars($_SESSION['user']['Avatar'], ENT_QUOTES) ?>" alt="..." class="rounded-circle" style="width: 200px; height: 200px;">
-            </div>
+            <div class="container mt-5 text-center">
+                <div class="avatar-container mx-auto">
+                    <img src="../<?= htmlspecialchars($_SESSION['user']['Avatar'], ENT_QUOTES) ?>" alt="Avatar" id="avatarImage">
+                    <div class="avatar-menu">Поменять аватар</div>
+                </div>
+           </div>
             <p class="text-muted border-bottom mt-3" style="font-size: 20px;">Логин: <?= htmlspecialchars($_SESSION['user']['Login'], ENT_QUOTES) ?></p>
             <p class="text-muted border-bottom mt-3" style="font-size: 20px;">Почта: <?= htmlspecialchars($_SESSION['user']['Email'], ENT_QUOTES) ?></p>
             <p class="text-muted border-bottom mt-3" style="font-size: 20px;">Колличество фото: <?= htmlspecialchars(count($images), ENT_QUOTES) ?></p>
@@ -104,26 +258,33 @@ $stmt->close();
             } else {
                 echo '<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4" id="images">';
                  foreach ($images as $image) {  ?>
-                    <div class="col">
-                        <div class="card mt-2 mb-2" style="display: none;">
-                            <img src="../<?= htmlspecialchars($image['Path'], ENT_QUOTES) ?>" class="card-img-top" alt="..." style="height: 350px;">
-                            <div class="card-body">
-                                <h6 class="card-title"><?= htmlspecialchars(strlen($image['Image_Name']) > 15 ? substr($image['Image_Name'], 0, 20) . '...' : $image['Image_Name'], ENT_QUOTES) ?></h6>
-                                <p class="text-muted"><?= htmlspecialchars(strlen($image['Description']) > 25 ? substr($image['Description'], 0, 20) . '...' : $image['Description'], ENT_QUOTES) ?></p>
-                                <p>Автор: <?php
-                                $stmt = $conn->prepare("SELECT * FROM users WHERE ID = ?");
-                                $stmt->bind_param("i", $image['upload_user_id']);
-                                $stmt->execute();
-                                $upload_user = $stmt->get_result()->fetch_assoc();
-                                echo htmlspecialchars($upload_user['Login'], ENT_QUOTES);
-                                ?></p>
-                                 <div class="d-flex justify-content-between align-items-center">
-                                 <a href="#" type="button" class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#exampleModal<?= $image['ID'] ?>">Подробнее</a>
-                                    <p class="mb-0 text-end text-muted" style="margin-left: auto; font-size: 15px"><?= htmlspecialchars($image['Category'], ENT_QUOTES) ?></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+               <div class="col-md-3 col-sm-6 col-12">
+                      <div class="card mt-3 mb-3 shadow-sm" style="display: none;">
+                <img src="../<?= htmlspecialchars($image['Preview_Path'], ENT_QUOTES) ?>" class="card-img-top" alt="Изображение" style="width: 100%;">
+                  <div class="card-body d-flex flex-column">
+                      <h6 class="card-title text-truncate" style="font-weight: bold;">
+                          <?= htmlspecialchars(strlen($image['Image_Name']) > 20 ? substr($image['Image_Name'], 0, 20) . '...' : $image['Image_Name'], ENT_QUOTES) ?>
+                      </h6>
+                      <p class="text-muted text-truncate mb-2">
+                          <?= htmlspecialchars(strlen($image['Description']) > 50 ? substr($image['Description'], 0, 50) . '...' : $image['Description'], ENT_QUOTES) ?>
+                      </p>
+                      <p class="mb-2" style="font-size: 14px; color: #555;">
+                          <strong>Автор:</strong> 
+                          <?php
+                          $stmt = $conn->prepare("SELECT * FROM users WHERE ID = ?");
+                          $stmt->bind_param("i", $image['upload_user_id']);
+                          $stmt->execute();
+                          $upload_user = $stmt->get_result()->fetch_assoc();
+                          echo htmlspecialchars($upload_user['Login'], ENT_QUOTES);
+                          ?>
+                      </p>
+                      <div class="d-flex justify-content-between align-items-center mt-auto">
+                          <a href="#" type="button" class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal<?= $image['ID'] ?>">Подробнее</a>
+                          <span class="badge bg-secondary" style="font-size: 12px;"><?= htmlspecialchars($image['Category'], ENT_QUOTES) ?></span>
+                      </div>
+                  </div>
+              </div>
+          </div>
                 <?php
                  } 
             }
@@ -133,10 +294,50 @@ $stmt->close();
     </div>
 </div>
 </main>
-<script src="../scripts/view.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
-</body>
-</html>
+    <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="uploadModalLabel">Загрузка изображения...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadForm" enctype="multipart/form-data" method="POST" action="">
+                        <div class="mb-3">
+                            <label for="imageName" class="form-label">Название</label>
+                            <input type="text" class="form-control" id="imageName" name="image_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="imageFile" class="form-label">Выбор изображения</label>
+                            <input type="file" class="form-control" id="imageFile" name="image_file" accept="image/*" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">Теги</label>
+                            <input type="text" class="form-control" id="tags" name="tags" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Категория</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="Аниме">Аниме</option>
+                                <option value="Игры">Игры</option>
+                                <option value="Природа">Природа</option>
+                                <option value="Музыка">Музыка</option>
+                                <option value="Мемы">Мемы</option>
+                                <option value="Машины">Машины</option>
+                                <option value="Другое">Другое</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Описание изображения</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                        </div>
+                        <input type="hidden" name="upload_image" value="1">
+                        <button type="submit" class="btn btn-primary">Загрузить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 <?php foreach ($images as $image) : ?>
 <div class="modal fade" id="exampleModal<?= $image['ID'] ?>" tabindex="-1" aria-labelledby="exampleModalLabel<?= $image['ID'] ?>" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -164,3 +365,26 @@ $stmt->close();
     </div>
 </div>
 <?php endforeach; ?>
+<div class="modal fade" id="changeAvatarModal" tabindex="-1" aria-labelledby="changeAvatarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="changeAvatarModalLabel">Сменить аватар</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="avatarForm" method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label for="avatarInput" class="form-label">Загрузите изображение</label>
+              <input class="form-control" type="file" id="avatarInput" name="avatar" accept="image/*" required>
+            </div>
+            <button type="submit" class="btn btn-dark">Сохранить</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+<script src="../scripts/view.js"></script>
+</body>
+</html>
